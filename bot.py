@@ -1,11 +1,11 @@
 import telebot
-import requests  
+import requests
+import json
+import os
 
-# 1. خلي التوكن مال التليكرام هنا
-TELEGRAM_TOKEN = '8842053034:AAHPURqAJ2v6PKQuu-uWEhGMpnyIrP6m1c4'
-
-# 2. خلي مفتاح جوجل الشخصي هنا
-GEMINI_API_KEY = 'AQ.Ab8RN6IUofzwr8fqx41d9dqwBojtDLgX4VY5evTSLjO05PwlWQ'
+# هسة المفاتيح مخفية ومحد يگدر يشوفها بالكود
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
@@ -64,7 +64,7 @@ def handle_messages(message):
         bot.reply_to(message, bot_reply)
         
     except Exception as e:
-        bot.reply_to(message, "صار عندي شورت بالعقل، ثواني وراجعلك! 🛠️")
+        bot.reply_to(message, "صار عندي شورت بالعقل، ثواني وراجعلك! 🛠")
         print(f"Error: {e}")
 
 print("البوت العراقي المطور جاهز بالتفاصيل الجديدة.. شغل وجرب!")
