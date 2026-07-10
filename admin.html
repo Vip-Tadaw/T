@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Rivana Ultimate Control Hub | مركز التحكم المطلق</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #03050a;
+            --bg-sidebar: #090c15;
+            --bg-card: #101424;
+            --bg-card-hover: #161c32;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --text-main: #ffffff;
+            --text-muted: #828a9e;
+            
+            --primary: #7c3aed;
+            --primary-glow: rgba(124, 58, 237, 0.12);
+            --success: #00b894;
+            --danger: #ff7675;
+            --warning: #fdcb6e;
+            --info: #0984e3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; transition: zoom 0.3s ease; }
+
+        /* Mobile Header */
+        .mobile-header { display: none; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); width: 100%; z-index: 100; }
+        .mobile-header h2 { font-size: 18px; font-weight: 800; color: #a78bfa; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .menu-toggle { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; }
+
+        /* Zoom Controls */
+        .zoom-controls { display: flex; justify-content: center; gap: 10px; padding: 15px 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+        .zoom-btn { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .zoom-btn:hover { background: var(--primary); border-color: var(--primary); }
+
+        .admin-container { display: flex; width: 100%; flex-grow: 1; overflow: hidden; }
+        
+        .sidebar { width: 280px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 20px 14px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; transition: all 0.3s ease; }
+        .logo-section { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; border-bottom: 1px solid var(--border-color); }
+        .logo-section h2 { font-size: 18px; font-weight: 800; color: #a78bfa; margin: 0; }
+        
+        .menu-label { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin: 16px 8px 8px; letter-spacing: 0.5px; }
+        .nav-list { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 12px 14px; color: var(--text-muted); text-decoration: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .nav-link:hover, .nav-link.active { background: var(--primary-glow); color: var(--text-main); }
+        .nav-link.active { border-right: 4px solid var(--primary); color: #a78bfa; }
+
+        .content-body { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 32px; position: relative; width: 100%; }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 1000; display: flex; justify-content: center; align-items: center; font-size: 15px; color: var(--text-muted); font-weight: bold; }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+        .metric-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .metric-card p { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .metric-card h3 { font-size: 20px; font-weight: 800; }
+
+        .panel { display: none; animation: slideUp 0.25s ease-out forwards; }
+        .panel.active-panel { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+
+        .grid-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: right; min-width: 700px; }
+        .admin-table th { background: rgba(0,0,0,0.2); padding: 14px 18px; font-size: 12px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        .admin-table td { padding: 14px 18px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.01); }
+        .admin-table tr:hover td { background: var(--bg-card-hover); }
+
+        .input-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+        .input-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+        .ctrl-input, .ctrl-select { width: 100%; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: white; font-size: 13px; outline: none; }
+        .ctrl-input:focus, .ctrl-select:focus { border-color: var(--primary); }
+
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block; white-space: nowrap; }
+        .badge-active { background: rgba(0, 184, 148, 0.15); color: var(--success); }
+        .badge-blocked { background: rgba(255, 118, 117, 0.15); color: var(--danger); }
+        .badge-info { background: rgba(9, 132, 227, 0.15); color: var(--info); }
+        
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn:hover { background: #6d28d9; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #00a887; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #e86868; }
+        .btn-info { background: var(--info); }
+        .btn-info:hover { background: #086ebf; }
+        .btn-warning { background: var(--warning); color: black; }
+
+        .preview-box { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-color); border-radius: 12px; padding: 16px; margin-top: 16px; display: none; }
+        .team-node { padding: 12px; border-right: 3px solid var(--primary); background: rgba(255,255,255,0.01); margin-bottom: 8px; border-radius: 4px; word-break: break-all; }
+        
+        /* Modal Styles */
+        .img-modal, .inspect-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .img-modal.active, .inspect-modal.active { display: flex; }
+        .img-modal-content { max-width: 90%; max-height: 85%; border-radius: 12px; border: 2px solid var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .inspect-content { background: var(--bg-card); width: 600px; max-width: 95%; max-height: 90vh; overflow-y: auto; border-radius: 16px; padding: 24px; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; }
+        .modal-close { position: absolute; top: 15px; right: 20px; color: white; font-size: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; z-index: 10; }
+        .modal-close:hover { color: var(--danger); }
+        .inspect-header { border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; font-size: 18px; font-weight: 800; color: var(--primary); padding-right: 30px; }
+        .inspect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .inspect-item { background: var(--bg-dark); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .inspect-item span { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .inspect-item strong { font-size: 14px; }
+        .actions-wrapper { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+        @media (max-width: 1024px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .input-row { grid-template-columns: repeat(2, 1fr); }
+            .content-body { padding: 20px; }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; }
+            .admin-container { flex-direction: column; height: calc(100vh - 60px); }
+            .sidebar { 
+                position: absolute; top: 60px; right: -100%; width: 100%; height: calc(100vh - 60px); 
+                z-index: 900; background: var(--bg-dark); border-left: none; transition: right 0.3s ease; 
+            }
+            .sidebar.show-mobile { right: 0; }
+            .logo-section { display: none; }
+            .content-body { padding: 15px; height: 100%; }
+            .metrics-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
+            .input-row { grid-template-columns: 1fr; }
+            .inspect-grid { grid-template-columns: 1fr; }
+            .actions-wrapper { justify-content: center; width: 100%; }
+            .actions-wrapper .btn { width: 100%; text-align: center; }
+            div[style*="display:flex; gap:12px;"] { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="mobile-header">
+        <h2>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#a78bfa" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            RIVANA COMMAND
+        </h2>
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    </header>
+
+    <div class="admin-container">
+        <aside class="sidebar" id="main-sidebar">
+            <div>
+                <div class="logo-section">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#a78bfa" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <h2>RIVANA COMMAND</h2>
+                </div>
+                <div class="nav-link" onclick="navigate('panel-live-activities', this)" style="background: rgba(124, 58, 237, 0.2); border-right: 4px solid var(--primary); color: white; margin-bottom: 15px;">
+                    🔔 رادار النشاطات الحية والإشعارات
+                </div>
+
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="changeZoom(0.1)" title="تكبير">+</button>
+                    <button class="zoom-btn" onclick="resetZoom()" title="الحجم الافتراضي">100%</button>
+                    <button class="zoom-btn" onclick="changeZoom(-0.1)" title="تصغير">-</button>
+                </div>
+                
+                <div class="menu-label">إدارة البوابات والطلبات</div>
+                <nav class="nav-list">
+                    <div class="nav-link active" onclick="navigate('panel-transfers', this)">💸 مراقبة التحويلات المالية</div>
+                    <div class="nav-link" onclick="navigate('panel-withdrawals', this)">📤 إدارة طلبات السحب</div>
+                </nav>
+
+                <div class="menu-label">منظومة الرقابة والبيانات</div>
+                <nav class="nav-list">
+                    <div class="nav-link" onclick="navigate('panel-users', this)">👥 معلومات الحسابات والبيانات</div>
+                    <div class="nav-link" onclick="navigate('panel-trading', this)">📈 التحكم بأنظمة الأرباح</div>
+                    <div class="nav-link" onclick="navigate('panel-teams', this)">🌳 استكشاف الفِرق والشبكات</div>
+                    <div class="nav-link" onclick="navigate('panel-security', this)">🛡️ الحظر ووقف السحوبات</div>
+                </nav>
+
+                <div class="menu-label">العمليات السريعة والتسويات</div>
+                <nav class="nav-list">
+                    <div class="nav-link" onclick="navigate('panel-points-transfer', this)">💎 تحويل النقاط والأرصدة بالـ ID</div>
+                    <div class="nav-link" onclick="navigate('panel-data-editor', this)">⚙️ محرر وتعديل كل البيانات</div>
+                    <div class="nav-link" onclick="navigate('panel-audit-logs', this)">📜 سجل مراقبة العمليات</div>
+                </nav>
+            </div>
+            
+            <div class="nav-link" style="color: var(--danger); margin-top: 20px; border-top: 1px solid var(--border-color);" onclick="window.location.href='login.html'">🚪 خروج آمن</div>
+        </aside>
+
+        <main class="content-body" id="main-content">
+            <div id="loading-screen">جاري جلب المنظومة ومزامنة أجهزة التداول والشبكات...</div>
+
+            <div class="metrics-grid">
+                <div class="metric-card"><div><p>المستخدمين</p><h3 id="m-users">0</h3></div><div>👥</div></div>
+                <div class="metric-card"><div><p>سيولة USDT</p><h3 id="m-usdt">0.00</h3></div><div>₮</div></div>
+                <div class="metric-card"><div><p>سيولة IQD</p><h3 id="m-iqd">0</h3></div><div>ع.د</div></div>
+                <div class="metric-card"><div><p>تداولات نشطة</p><h3 id="m-trades">0</h3></div><div>📊</div></div>
+            </div>
+
+            <div id="panel-live-activities" class="panel">
+                <div class="panel-title">🔔 رادار النشاطات الحية للمستخدمين</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>تاريخ ووقت النشاط</th>
+                                <th>العميل / المعرف</th>
+                                <th>نوع النشاط</th>
+                                <th>التفاصيل الكاملة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-live-activities"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-transfers" class="panel active-panel">
+                <div class="panel-title">💸 سجل التحويلات المالية بين الوكلاء والمستخدمين</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>وقت وتاريخ التحويل</th>
+                                <th>معرف المرسل (الوكيل)</th>
+                                <th>معرف المستلم</th>
+                                <th>المبلغ المحول (IQD)</th>
+                                <th>حالة العملية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-transfers"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-withdrawals" class="panel">
+                <div class="panel-title">📤 طلبات سحب الأموال والكسور المعلقة</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>المعرف/العميل</th><th>بوابة الاستلام</th><th>المبلغ الصافي</th><th>حساب العميل المستلم</th><th>القرار الإداري (فحص الأرصدة)</th></tr>
+                        </thead>
+                        <tbody id="table-withdrawals"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-users" class="panel">
+                <div class="panel-title">👥 سجل معلومات المستخدمين والبيانات المودعة كلياً</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>الاسم الكامل والـ ID</th><th>المحفظة المتاحة</th><th>رصيد التداول</th><th>معرف المحيل (الرابط)</th><th>الهاتف/البريد</th></tr>
+                        </thead>
+                        <tbody id="table-users"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-trading" class="panel">
+                <div class="panel-title">📈 غرفة توجيه خوارزمية صفقات التداول (صانع السوق)</div>
+                <div class="input-box">
+                    <div class="input-row">
+                        <div class="input-group"><label>تحديد الـ UID للمستخدم المستهدف لتوجيه صفقاته</label><input type="text" id="trade-target-uid" class="ctrl-input" placeholder="أدخل معرف الـ ID للعميل"></div>
+                        <div class="input-group">
+                            <label>توجيه مسار الصفقات</label>
+                            <select id="trade-target-mode" class="ctrl-select">
+                                <option value="win">صعود وربح إجباري مستمر 🟢</option>
+                                <option value="lose">هبوط وخسارة مستهدفة 🔴</option>
+                                <option value="normal">حركة السوق العشوائية الطبيعية ⚪</option>
+                            </select>
+                        </div>
+                        <div class="input-group"><label>نسبة العائد المستهدف لكل صفقة (%)</label><input type="number" id="trade-target-percent" class="ctrl-input" placeholder="مثال: 7%"></div>
+                    </div>
+                    <button class="btn btn-success" id="btn-save-trading-rules">تطبيق الخوارزمية الفورية على حسابه</button>
+                </div>
+            </div>
+
+            <div id="panel-teams" class="panel">
+                <div class="panel-title">🌳 محرك استكشاف تسلسل الفِرق وربط الإحالات الهرمية</div>
+                <div class="input-box">
+                    <div style="display:flex; gap:12px; margin-bottom:16px;">
+                        <input type="text" id="team-search-uid" class="ctrl-input" placeholder="ضع الـ ID لأي مستخدم لمعاينة فريقه بالكامل">
+                        <button class="btn" id="btn-fetch-team">استخراج شجرة الإحالات</button>
+                    </div>
+                    <div id="team-tree-output"></div>
+                </div>
+            </div>
+
+            <div id="panel-security" class="panel">
+                <div class="panel-title">🛡️ مفاتيح الحظر الشامل وتجميد عمليات السحب النقدي</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>المستخدم</th><th>حالة الحساب الكلية</th><th>حظر وقفل السحب</th><th>إجراءات السلامة</th></tr>
+                        </thead>
+                        <tbody id="table-security-controls"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-points-transfer" class="panel">
+                <div class="panel-title">💎 جناح تحويل وتسوية النقاط والأرصدة بواسطة الـ ID</div>
+                <div class="input-box">
+                    <div style="display:flex; gap:12px; margin-bottom:16px;">
+                        <input type="text" id="pts-search-uid" class="ctrl-input" placeholder="أدخل الـ ID بدقة لفحص الحساب المستهدف قبل التحويل">
+                        <button class="btn" id="btn-verify-for-pts">🔍 جلب والتحقق من الحساب</button>
+                    </div>
+                    
+                    <div class="preview-box" id="pts-user-preview">
+                        <h4 style="color:#a78bfa; margin-bottom:6px;">معلومات العميل المطابقة:</h4>
+                        <div id="pts-preview-data" style="font-size:12px; line-height:1.6;"></div>
+                        
+                        <div class="input-row" style="margin-top:16px;">
+                            <div class="input-group">
+                                <label>نوع الأصل المراد إرساله للعميل</label>
+                                <select id="pts-asset-type" class="ctrl-select">
+                                    <option value="balanceUSDT">رصيد رقمي USDT ₮</option>
+                                    <option value="balanceIQD">رصيد نقدي دينار عراقي IQD</option>
+                                    <option value="total_profits">نقاط أرباح إضافية</option>
+                                </select>
+                            </div>
+                            <div class="input-group"><label>الكمية أو القيمة المالي المراد ضخها</label><input type="number" id="pts-amount" class="ctrl-input" placeholder="0.00"></div>
+                        </div>
+                        <button class="btn btn-success" style="margin-top:10px;" id="btn-execute-pts-transfer">تأكيد شحن الحساب والتحويل الآن</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-data-editor" class="panel">
+                <div class="panel-title">⚙️ غرفة تغيير وتعديل بيانات المستخدمين بالكامل</div>
+                <div class="input-box">
+                    <div style="display:flex; gap:12px; margin-bottom:16px;">
+                        <input type="text" id="editor-search-uid" class="ctrl-input" placeholder="ضع معرف الـ ID لفتح سجل تعديل البيانات الشامل">
+                        <button class="btn" id="btn-load-user-to-edit">فتح ملف البيانات لتعديله</button>
+                    </div>
+                    <div id="editor-fields-area" style="display:none;" class="form-grid">
+                        <div class="input-row">
+                            <div class="input-group"><label>الاسم الكامل للمستخدم</label><input type="text" id="edit-f-name" class="ctrl-input"></div>
+                            <div class="input-group"><label>رقم الهاتف المعتمد</label><input type="text" id="edit-f-phone" class="ctrl-input"></div>
+                            <div class="input-group"><label>البريد الإلكتروني</label><input type="text" id="edit-f-email" class="ctrl-input"></div>
+                        </div>
+                        <button class="btn btn-success" id="btn-save-all-edited-fields">حفظ كافة البيانات الجديدة وتعميمها على الخادم</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-audit-logs" class="panel">
+                <div class="panel-title">📜 سجل العمليات التراكمية التاريخي (Audit Logs)</div>
+                <div class="grid-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>وقت الإجراء</th><th>نوع التحويل / العملية</th><th>تفاصيل وسجل التسوية الإدارية</th></tr>
+                        </thead>
+                        <tbody id="table-audit-logs"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="inspectionModal" class="inspect-modal">
+        <div class="inspect-content">
+            <span class="modal-close" onclick="closeInspectModal()">&times;</span>
+            <div class="inspect-header" id="inspect-title">🔍 جاري جلب بيانات المستخدم...</div>
+            
+            <div class="inspect-grid">
+                <div class="inspect-item"><span>الاسم الكامل</span><strong id="ins-name">--</strong></div>
+                <div class="inspect-item"><span>حالة السحب/الحساب</span><strong id="ins-status">--</strong></div>
+                <div class="inspect-item"><span>رصيد USDT المتاح</span><strong id="ins-usdt" style="color:var(--success)">0.00 ₮</strong></div>
+                <div class="inspect-item"><span>رصيد IQD المتاح</span><strong id="ins-iqd" style="color:var(--success)">0 IQD</strong></div>
+                <div class="inspect-item"><span>الرصيد المحجوز للتداول</span><strong id="ins-trading" style="color:var(--warning)">0 IQD</strong></div>
+                <div class="inspect-item"><span>إجمالي الأرباح المكتسبة</span><strong id="ins-profits" style="color:var(--info)">0 IQD</strong></div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color); margin-bottom: 20px;">
+                <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">تفاصيل الطلب الحالي الموجه لك:</h4>
+                <div id="ins-request-details" style="font-size: 14px; font-weight: bold; color: white; line-height: 1.5;">--</div>
+            </div>
+
+            <div class="actions-wrapper" id="ins-actions"></div>
+        </div>
+    </div>
+
+    <div id="userProfileModal" class="inspect-modal">
+        <div class="inspect-content" style="width: 750px; max-width: 95%;">
+            <span class="modal-close" onclick="closeUserProfileModal()">&times;</span>
+            <div class="inspect-header" id="up-title">👤 الملف الشخصي الشامل للعميل</div>
+            <div class="inspect-grid" id="up-details-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, collection, onSnapshot, updateDoc, addDoc, runTransaction, serverTimestamp, getDocs, getDoc, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWOr0McRsxLMHehiBA_EIpabnz5CBxp04",
+            authDomain: "reivana-8e377.firebaseapp.com",
+            projectId: "reivana-8e377",
+            storageBucket: "reivana-8e377.firebasestorage.app",
+            messagingSenderId: "1066129522960",
+            appId: "1:1066129522960:web:8179e50a906fd08ee96595",
+            measurementId: "G-TD9YWWDEDT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.navigate = function(panelId, element) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active-panel'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(panelId).classList.add('active-panel');
+            if(element) element.classList.add('active');
+            
+            if(window.innerWidth <= 768) {
+                document.getElementById('main-sidebar').classList.remove('show-mobile');
+            }
+        }
+
+        window.toggleSidebar = function() {
+            document.getElementById('main-sidebar').classList.toggle('show-mobile');
+        }
+
+        let currentZoom = 1;
+        window.changeZoom = function(step) {
+            currentZoom += step;
+            if(currentZoom < 0.5) currentZoom = 0.5;
+            if(currentZoom > 1.5) currentZoom = 1.5;
+            document.body.style.zoom = currentZoom;
+        }
+        window.resetZoom = function() {
+            currentZoom = 1;
+            document.body.style.zoom = currentZoom;
+        }
+
+        function launchSuperConsoleListeners() {
+            // 1. مراقبة الرادار الحي
+            const activitiesQuery = query(collection(db, "user_activities"), orderBy("timestamp", "desc"), limit(100));
+            onSnapshot(activitiesQuery, (snapshot) => {
+                const tActivities = document.getElementById('table-live-activities');
+                if(!tActivities) return;
+                tActivities.innerHTML = '';
+                
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString('ar-IQ', { hour12: true }) : 'الآن';
+                    
+                    let badgeColor = 'var(--info)';
+                    if(data.type === 'سحب' || data.type === 'خسارة') badgeColor = 'var(--danger)';
+                    if(data.type === 'إيداع' || data.type === 'ربح' || data.type === 'تحويل مالي') badgeColor = 'var(--success)';
+                    if(data.type === 'تداول' || data.type === 'دخول') badgeColor = 'var(--warning)';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="direction: ltr; text-align: right;"><small style="color:var(--text-muted); font-family:monospace;">${date}</small></td>
+                        <td><strong>${data.userName || 'غير معروف'}</strong><br><small style="color:var(--text-muted);">${data.userId || '--'}</small></td>
+                        <td><span class="badge" style="background: ${badgeColor}20; color: ${badgeColor}; border: 1px solid ${badgeColor}50;">${data.type || 'نشاط'}</span></td>
+                        <td>${data.details || ''}</td>
+                    `;
+                    tActivities.appendChild(tr);
+                });
+            });
+
+            // 2. مراقبة التحويلات المالية الآلية (تأخذ من إشعارات الإدارة التي بُرمجت مسبقاً)
+            const transfersQuery = query(collection(db, "admin_notifications"), orderBy("timestamp", "desc"), limit(100));
+            onSnapshot(transfersQuery, (snapshot) => {
+                const tTransfers = document.getElementById('table-transfers');
+                if(!tTransfers) return;
+                tTransfers.innerHTML = '';
+                
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if(data.type === 'transfer_alert') {
+                        const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString('ar-IQ', { hour12: true }) : 'الآن';
+                        
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="direction: ltr; text-align: right;"><small style="color:var(--text-muted); font-family:monospace;">${date}</small></td>
+                            <td><small style="font-family:monospace; color:var(--text-main); font-weight:bold;">${data.senderId || 'غير متوفر'}</small></td>
+                            <td><small style="font-family:monospace; color:var(--info); font-weight:bold;">${data.receiverId || 'غير متوفر'}</small></td>
+                            <td style="color:var(--success); font-weight:800; font-size: 14px;">${Number(data.amount || 0).toLocaleString()}</td>
+                            <td><span class="badge badge-active">مكتملة تلقائياً ✓</span></td>
+                        `;
+                        tTransfers.appendChild(tr);
+                    }
+                });
+            });
+
+            // 3. مزامنة المستخدمين
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                const tUsers = document.getElementById('table-users');
+                const tSecurity = document.getElementById('table-security-controls');
+                if(!tUsers || !tSecurity) return;
+                
+                tUsers.innerHTML = ''; tSecurity.innerHTML = '';
+                let uCount = 0, sumUsdt = 0, sumIqd = 0, activeTrades = 0;
+
+                snapshot.forEach((uDoc) => {
+                    const data = uDoc.data();
+                    const uid = uDoc.id;
+
+                    const usdt = Number(data.balanceUSDT || 0);
+                    const iqd = Number(data.balanceIQD || 0);
+                    const tradeBal = Number(data.tradingBalance || data.trading_balance || 0);
+                    const isBanned = data.status === 'blocked' || data.isBanned === true;
+                    const isWithdrawLocked = data.isWithdrawLocked === true;
+
+                    uCount++; sumUsdt += usdt; sumIqd += iqd; if(tradeBal > 0) activeTrades++;
+
+                    const trUser = document.createElement('tr');
+                    trUser.innerHTML = `
+                        <td><strong>${data.fullName || 'مستخدم ريفانا'}</strong><br><small style="font-family:monospace; color:var(--text-muted);">${uid}</small></td>
+                        <td style="color:var(--success)">₮${usdt.toFixed(2)} / ${iqd.toLocaleString()} IQD</td>
+                        <td style="color:var(--info)">${tradeBal.toLocaleString()} IQD</td>
+                        <td>${data.referredBy || 'مباشر لا يوجد'}</td>
+                        <td>
+                            <button class="btn btn-info" style="padding: 6px 12px; font-size: 11px;" onclick="viewFullUserProfile('${uid}')">👁️ عرض الملف الشامل</button>
+                        </td>
+                    `;
+                    tUsers.appendChild(trUser);
+
+                    const trSec = document.createElement('tr');
+                    trSec.innerHTML = `
+                        <td><strong>${data.fullName || 'العميل'}</strong><br><small style="font-family:monospace;">${uid}</small></td>
+                        <td><span class="badge ${isBanned?'badge-blocked':'badge-active'}">${isBanned?'محظور كلياً 🛑':'نشط بمثالية ✓'}</span></td>
+                        <td><span class="badge ${isWithdrawLocked?'badge-blocked':'badge-active'}">${isWithdrawLocked?'السحب موقف ⚠️':'السحب متاح ✓'}</span></td>
+                        <td>
+                            <button class="btn ${isBanned?'btn-success':'btn-danger'}" onclick="toggleBanStatus('${uid}', ${isBanned})">${isBanned?'إلغاء الحظر':'حظر الحساب'}</button>
+                            <button class="btn btn-warning" onclick="toggleWithdrawLock('${uid}', ${isWithdrawLocked})">${isWithdrawLocked?'تفعيل السحب':'وقف السحب'}</button>
+                        </td>
+                    `;
+                    tSecurity.appendChild(trSec);
+                });
+
+                document.getElementById('m-users').innerText = uCount;
+                document.getElementById('m-usdt').innerText = sumUsdt.toLocaleString('en-US',{minimumFractionDigits:2});
+                document.getElementById('m-iqd').innerText = sumIqd.toLocaleString('en-US',{maximumFractionDigits:0});
+                document.getElementById('m-trades').innerText = activeTrades;
+                
+                const loader = document.getElementById('loading-screen');
+                if(loader) loader.style.display = 'none';
+            });
+
+            // 4. مزامنة السحوبات
+            onSnapshot(collection(db, "withdrawals"), (snapshot) => {
+                const tWithdraw = document.getElementById('table-withdrawals');
+                if(!tWithdraw) return;
+                tWithdraw.innerHTML = '';
+                snapshot.forEach((wDoc) => {
+                    const data = wDoc.data();
+                    if(data.status === 'pending' || data.status === 'قيد الانتظار') {
+                        let details = '';
+                        if(data.details) { for (const [k, v] of Object.entries(data.details)) { details += `${k}:${v} | `; } }
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${data.userId}</strong></td>
+                            <td><span class="badge" style="background:rgba(255,255,255,0.05);">${data.method || 'غير محدد'}</span></td>
+                            <td style="color:var(--success); font-weight:700;">${Number(data.amountRequested || 0).toLocaleString()} ${String(data.currency || 'IQD').toUpperCase()}</td>
+                            <td><small>${details}</small></td>
+                            <td>
+                                <button class="btn btn-warning" onclick="inspectTransaction('${data.userId}', '${wDoc.id}', 'withdrawal', ${data.amountRequested}, '${data.currency}')">🔍 فحص الأرصدة</button>
+                            </td>
+                        `;
+                        tWithdraw.appendChild(tr);
+                    }
+                });
+            });
+
+            // 5. سجل العمليات
+            onSnapshot(collection(db, "audit_logs"), (snapshot) => {
+                const tLogs = document.getElementById('table-audit-logs');
+                if(!tLogs) return;
+                tLogs.innerHTML = '';
+                snapshot.forEach((lDoc) => {
+                    const data = lDoc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString('ar-EG') : 'الآن';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td><small>${date}</small></td><td><span class="badge" style="background:var(--primary-glow); color:#a78bfa;">${data.type || 'إجراء'}</span></td><td>${data.details || ''}</td>`;
+                    tLogs.appendChild(tr);
+                });
+            });
+        }
+
+        // ================= نظام الفحص العميق المطور (Deep Inspection) =================
+        window.inspectTransaction = async function(userId, transId, type, amount, currency) {
+            const modal = document.getElementById('inspectionModal');
+            modal.classList.add('active');
+            
+            document.getElementById('inspect-title').innerText = "⏳ جاري استخراج قواعد بيانات العميل...";
+            
+            try {
+                const uDoc = await getDoc(doc(db, "users", userId));
+                if(!uDoc.exists()) throw new Error("المستخدم غير موجود في قاعدة البيانات.");
+                
+                const u = uDoc.data();
+                
+                document.getElementById('inspect-title').innerText = `📑 تقرير فحص الحساب المرجعي (${userId})`;
+                document.getElementById('ins-name').innerText = u.fullName || 'غير مسجل';
+                document.getElementById('ins-status').innerHTML = (u.isBanned || u.status === 'blocked') ? "<span style='color:red'>محظور 🛑</span>" : "<span style='color:var(--success)'>نشط وموثق ✓</span>";
+                
+                document.getElementById('ins-usdt').innerText = `${Number(u.balanceUSDT || 0).toFixed(2)} ₮`;
+                document.getElementById('ins-iqd').innerText = `${Number(u.balanceIQD || 0).toLocaleString()} IQD`;
+                document.getElementById('ins-trading').innerText = `${Number(u.tradingBalance || u.trading_balance || 0).toLocaleString()} IQD`;
+                document.getElementById('ins-profits').innerText = `${Number(u.total_profits || 0).toLocaleString()} IQD`;
+
+                const reqDetails = document.getElementById('ins-request-details');
+                const actionsDiv = document.getElementById('ins-actions');
+                
+                // تم إزالة فحص الإيداعات وبقاء السحوبات فقط
+                if (type === 'withdrawal') {
+                    let currentBal = currency.toLowerCase() === 'usdt' ? Number(u.balanceUSDT||0) : Number(u.balanceIQD||0);
+                    let balanceWarning = currentBal < amount ? `<br><span style='color:red;'>⚠️ تحذير: الرصيد الحالي للعميل أقل من المبلغ المطلوب سحبه!</span>` : `<br><span style='color:var(--success)'>✓ الرصيد يغطي العملية.</span>`;
+                    
+                    reqDetails.innerHTML = `🔴 العميل يطلب سحب مبلغ ${amount} ${currency.toUpperCase()} من محفظته المتاحة. ${balanceWarning}`;
+                    actionsDiv.innerHTML = `
+                        <button class="btn btn-danger" onclick="resolveWithdrawal('${transId}', 'failed', '${userId}', '${currency}', ${amount}); closeInspectModal();">رفض وإرجاع الرصيد للحساب</button>
+                        <button class="btn btn-success" onclick="resolveWithdrawal('${transId}', 'success'); closeInspectModal();">تم التحويل (موافقة نهائية)</button>
+                    `;
+                }
+            } catch(e) {
+                document.getElementById('inspect-title').innerText = "❌ فشل جلب البيانات!";
+                document.getElementById('ins-request-details').innerText = e.message;
+            }
+        };
+
+        window.closeInspectModal = function() { document.getElementById('inspectionModal').classList.remove('active'); };
+        
+        window.viewFullUserProfile = async function(uid) {
+            const modal = document.getElementById('userProfileModal');
+            const grid = document.getElementById('up-details-grid');
+            document.getElementById('up-title').innerText = `⏳ جاري جلب كل البيانات...`;
+            grid.innerHTML = '';
+            modal.classList.add('active');
+
+            try {
+                const uDoc = await getDoc(doc(db, "users", uid));
+                if (!uDoc.exists()) throw new Error("المستخدم غير موجود.");
+                
+                const data = uDoc.data();
+                document.getElementById('up-title').innerText = `👤 بيانات العميل: ${data.fullName || 'بدون اسم'} (${uid})`;
+                
+                const translateKey = (key) => {
+                    const dict = { 'fullName':'الاسم الكامل', 'email':'البريد', 'phoneNumber':'رقم الهاتف', 'balanceUSDT':'رصيد USDT', 'balanceIQD':'رصيد IQD', 'tradingBalance':'رصيد التداول', 'total_profits':'الأرباح', 'tradeMode':'نمط التداول', 'referredBy':'المحيل', 'isBanned':'محظور؟', 'isWithdrawLocked':'السحب مقفل؟', 'password': 'الرقم السري' };
+                    return dict[key] || key;
+                };
+
+                for (const [key, value] of Object.entries(data)) {
+                    let displayValue = value;
+                    if(typeof value === 'number') displayValue = value.toLocaleString();
+                    else if(typeof value === 'object' && value !== null) displayValue = JSON.stringify(value);
+                    else if(value === '' || value === null || value === undefined) displayValue = '<span style="color:var(--danger)">فارغ</span>';
+
+                    grid.innerHTML += `
+                        <div class="inspect-item">
+                            <span>${translateKey(key)} (${key})</span>
+                            <strong style="word-break: break-all;">${displayValue}</strong>
+                        </div>`;
+                }
+            } catch(e) { grid.innerHTML = `<div style="color:var(--danger); grid-column: 1 / -1;">❌ خطأ في الجلب: ${e.message}</div>`; }
+        };
+
+        window.closeUserProfileModal = function() { 
+            document.getElementById('userProfileModal').classList.remove('active'); 
+        };
+
+        // ================= الإجراءات الإدارية =================
+        window.resolveWithdrawal = async function(wid, status, userId=null, currency=null, amt=0) {
+            try {
+                if(status === 'success') {
+                    await updateDoc(doc(db, "withdrawals", wid), { status: 'مكتمل' });
+                    await addDoc(collection(db, "audit_logs"), { type: "سحب مالي", details: `تمت الموافقة على طلب سحب للطلب رقم ${wid}`, timestamp: serverTimestamp() });
+                } else {
+                    const uRef = doc(db, "users", userId);
+                    const wRef = doc(db, "withdrawals", wid);
+                    const field = currency.toLowerCase() === 'usdt' ? 'balanceUSDT' : 'balanceIQD';
+                    await runTransaction(db, async (trans) => {
+                        const uDoc = await trans.get(uRef);
+                        trans.update(uRef, { [field]: Number(uDoc.data()[field] || 0) + Number(amt) });
+                        trans.update(wRef, { status: 'فشل' });
+                    });
+                    await addDoc(collection(db, "audit_logs"), { type: "رفض سحب مالي", details: `تم رفض السحب وإرجاع ${amt} لحساب ${userId}`, timestamp: serverTimestamp() });
+                }
+            } catch(e) { alert(e.message); }
+        }
+
+        window.toggleBanStatus = async function(uid, currentBanState) {
+            try {
+                await updateDoc(doc(db, "users", uid), { status: currentBanState ? 'active' : 'blocked', isBanned: !currentBanState });
+                await addDoc(collection(db, "audit_logs"), { type: "أمن الحسابات", details: `تمت تسوية حالة الحظر للمستخدم ${uid}`, timestamp: serverTimestamp() });
+            } catch(e) { alert(e.message); }
+        }
+
+        window.toggleWithdrawLock = async function(uid, currentLockState) {
+            try {
+                await updateDoc(doc(db, "users", uid), { isWithdrawLocked: !currentLockState });
+                await addDoc(collection(db, "audit_logs"), { type: "تقييد الأرصدة", details: `تعديل صلاحية السحب للعميل ${uid}`, timestamp: serverTimestamp() });
+            } catch(e) { alert(e.message); }
+        }
+
+        document.getElementById('btn-save-trading-rules').addEventListener('click', async () => {
+            const uid = document.getElementById('trade-target-uid').value.trim();
+            const mode = document.getElementById('trade-target-mode').value;
+            const percent = Number(document.getElementById('trade-target-percent').value);
+            if(!uid) return alert("يرجى إدخال الـ ID للمستخدم.");
+
+            try {
+                await updateDoc(doc(db, "users", uid), { tradeMode: mode, tradePercent: percent });
+                alert("🎯 تم تثبيت خوارزمية التداول الموجهة بنجاح.");
+                await addDoc(collection(db, "audit_logs"), { type: "توجيه السوق", details: `توجيه تداول العميل ${uid} للنمط ${mode}`, timestamp: serverTimestamp() });
+            } catch(e) { alert("فشل تحديث الخوارزمية."); }
+        });
+
+        document.getElementById('btn-fetch-team').addEventListener('click', async () => {
+            const uid = document.getElementById('team-search-uid').value.trim();
+            const output = document.getElementById('team-tree-output');
+            if(!output) return; output.innerHTML = ''; if(!uid) return;
+
+            try {
+                const snap = await getDocs(collection(db, "users"));
+                let html = `<h4>أعضاء الفريق المحالين بواسطة العميل:</h4><br>`;
+                let found = false;
+                snap.forEach(d => {
+                    const u = d.data();
+                    if(u.referredBy === uid || u.inviterId === uid) {
+                        found = true;
+                        html += `<div class="team-node">👤 <strong>${u.fullName || 'غير مسمى'}</strong> - الرصيد: ${Number(u.balanceIQD || 0).toLocaleString()} IQD (الـ ID: ${d.id})</div>`;
+                    }
+                });
+                output.innerHTML = found ? html : '<span style="color:var(--danger)">لم يتم العثور على أي أعضاء.</span>';
+            } catch(e) { alert(e.message); }
+        });
+
+        let ptsVerifiedUID = null;
+        document.getElementById('btn-verify-for-pts').addEventListener('click', async () => {
+            const uid = document.getElementById('pts-search-uid').value.trim();
+            const preview = document.getElementById('pts-user-preview');
+            const dataBox = document.getElementById('pts-preview-data');
+            
+            if(!preview || !dataBox) return;
+            preview.style.display = 'none'; ptsVerifiedUID = null;
+            if(!uid) return;
+
+            const uDoc = await getDoc(doc(db, "users", uid));
+            if(!uDoc.exists()) return alert("❌ المعرف ID غير صحيح.");
+
+            const u = uDoc.data();
+            ptsVerifiedUID = uid;
+            dataBox.innerHTML = `🔹 الاسم: ${u.fullName || 'غير مسمى'}<br>🔹 الرصيد الحالي: ${Number(u.balanceUSDT || 0).toFixed(2)} ₮ | ${Number(u.balanceIQD || 0).toLocaleString()} IQD<br>🔹 الأرباح: ${Number(u.total_profits || 0).toLocaleString()} IQD`;
+            preview.style.display = 'block';
+        });
+
+        document.getElementById('btn-execute-pts-transfer').addEventListener('click', async () => {
+            if(!ptsVerifiedUID) return;
+            const asset = document.getElementById('pts-asset-type').value;
+            const amount = Number(document.getElementById('pts-amount').value);
+            if(amount <= 0) return alert("يرجى تعيين كمية صحيحة.");
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const uRef = doc(db, "users", ptsVerifiedUID);
+                    const docSnap = await transaction.get(uRef);
+                    transaction.update(uRef, { [asset]: Number(docSnap.data()[asset] || 0) + amount });
+                });
+                alert(`✅ تم شحن القيمة بنجاح للحساب: ${ptsVerifiedUID}`);
+                document.getElementById('pts-user-preview').style.display = 'none';
+                await addDoc(collection(db, "audit_logs"), { type: "شحن أرصدة", details: `ضخ ${amount} في ${asset} لـ ${ptsVerifiedUID}`, timestamp: serverTimestamp() });
+            } catch(e) { alert(e.message); }
+        });
+
+        let editorActiveUID = null;
+        document.getElementById('btn-load-user-to-edit').addEventListener('click', async () => {
+            const uid = document.getElementById('editor-search-uid').value.trim();
+            const area = document.getElementById('editor-fields-area');
+            if(!area) return; area.style.display = 'none'; editorActiveUID = null;
+            
+            if(!uid) return;
+            const uDoc = await getDoc(doc(db, "users", uid));
+            if(!uDoc.exists()) return alert("المعرف غير صحيح.");
+
+            const u = uDoc.data();
+            editorActiveUID = uid;
+            document.getElementById('edit-f-name').value = u.fullName || '';
+            document.getElementById('edit-f-phone').value = u.phoneNumber || '';
+            document.getElementById('edit-f-email').value = u.email || '';
+            area.style.display = 'block';
+        });
+
+        document.getElementById('btn-save-all-edited-fields').addEventListener('click', async () => {
+            if(!editorActiveUID) return;
+            try {
+                await updateDoc(doc(db, "users", editorActiveUID), {
+                    fullName: document.getElementById('edit-f-name').value,
+                    phoneNumber: document.getElementById('edit-f-phone').value,
+                    email: document.getElementById('edit-f-email').value
+                });
+                alert("⚙️ تم تحديث بيانات العميل بنجاح.");
+                document.getElementById('editor-fields-area').style.display = 'none';
+            } catch(e) { alert(e.message); }
+        });
+
+       // تعريف نظام المصادقة
+const auth = getAuth(app);
+
+// عند تحميل الصفحة، نتحقق من هوية الشخص
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('loading-screen');
+    
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email === 'nmkhkh172@gmail.com') {
+            // ممتاز! الأدمن مسجل دخوله مسبقاً، شغل المنظومة فوراً
+            launchSuperConsoleListeners();
+        } else {
+            // الزائر ليس الأدمن (أو لم يسجل دخوله بعد)
+            if (loader) loader.innerText = "🔒 لوحة الإدارة محمية. يرجى تسجيل الدخول...";
+            
+            // إظهار نافذة تطلب الباسورد الخاص بحساب الأدمن
+            setTimeout(() => {
+                const adminEmail = 'nmkhkh172@gmail.com';
+                const password = prompt(مرحب`اً بك أيها المدير.\nيرجى إدخال كلمة المرور لحساب:\n${adminEmail}`);
+                
+                if (password) {
+                    if (loader) loader.innerText = "⏳ جاري التحقق من الصلاحيات...";
+                    signInWithEmailAndPassword(auth, adminEmail, password)
+                        .then(() => {
+                            alert("✅ تم تسجيل الدخول بنجاح! مرحباً بك في مركز التحكم.");
+                            launchSuperConsoleListeners(); // تشغيل المنظومة بعد النجاح
+                        })
+                        .catch((error) => {
+                            alert("❌ كلمة المرور خاطئة أو يوجد مشكلة: " + error.message);
+                            if (loader) loader.innerText = "❌ تم رفض الوصول.";
+                            window.location.reload(); // إعادة تحميل الصفحة للمحاولة مجدداً
+                        });
+                } else {
+                    alert("⚠️ تم إلغاء تسجيل الدخول. لا يمكنك رؤية البيانات.");
+                    if (loader) loader.innerText = "❌ الوصول مقفل. يرجى تحديث الصفحة والمحاولة.";
+                }
+            }, 500);
+        }
+    });
+});
+    </script>
+</body>
+</html>
